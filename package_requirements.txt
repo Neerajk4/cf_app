@@ -1,0 +1,10 @@
+fiona==1.8.13.post1
+flask==1.1.2
+geopandas==0.8.1
+numpy==1.19.2
+pandas==1.2.3
+rasterio==1.1.1
+rasterstats==0.14.0
+requests==2.25.1
+sat-search==0.3.0
+werkzeug==1.0.1
