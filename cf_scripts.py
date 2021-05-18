@@ -17,6 +17,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import os
+from google.cloud import storage
 #%%
 
 
@@ -58,8 +59,7 @@ def retrieveimg(shpfile):
 
 
 #%%
-def nvdicalc(b4, b8):
-
+def ndvicalc(b4, b8):
 # read Red(b4) and NIR(b8) as arrays
     red = b4.read()
     nir = b8.read()
@@ -95,53 +95,17 @@ def resizeimg(dataset):
 
 def testfunction():
     return "Hello"
-#%%
-##from PIL import Image
-##import PIL
 
-
-##image = Image.open('static/uploads/sample.jpg')
-##base_width = 360
-##width_percent = (base_width / float(image.size[0]))
-##hsize = int((float(image.size[1]) * float(width_percent)))
-##image2 = image.resize((base_width, hsize), PIL.Image.ANTIALIAS)
-##image2 = image2.convert('RGB')
-##image2.save('resized_compressed_image.jpg')
-
-#%%
-
-##import matplotlib.pyplot as plt
-##fig = plt.figure()
-##grid = axes_grid1.AxesGrid(
-##fig, 111, nrows_ncols=(1, 2), axes_pad = 0.5, cbar_location = "right",
-##cbar_mode="each", cbar_size="15%", cbar_pad="5%",)
-##ndvi=ndvi.squeeze()
-##im0 = grid[0].imshow(ndvi, cmap='pink', interpolation='nearest')
-##grid.cbar_axes[0].colorbar(im0)
-
-
-#%%
-
-##retrieveimg(shpfile)
-#%%
-##nvdicalc(b4, b8)
-##resizeimg(ndvi)
-#%%
-##from rasterio.enums import Resampling
-##upscale_factor = .25
-
-##with rio.open("static/uploads/ndvi.tif") as dataset:
-
-    # resample data to target shape
-    ##data = dataset.read(out_shape=(dataset.count,int(dataset.height * upscale_factor),
-    ##int(dataset.width * upscale_factor)), resampling=Resampling.bilinear)
-    
-    
-#%%
-    # scale image transform
-##transform = dataset.transform * dataset.transform.scale((dataset.width / data.shape[-1]),
-##(dataset.height / data.shape[-2]))
-
+def upload_to_bucket(blob_name, file_path, bucket_name):
+    try:
+        storage_client = storage.Client.from_service_account_json('shape/project2-297804-93907eda4ec1.json')
+        bucket = storage_client.get_bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(file_path)
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
 
 

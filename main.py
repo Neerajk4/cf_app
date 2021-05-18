@@ -3,8 +3,9 @@ from app import app
 import urllib.request
 from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
-from cf_scripts import retrieveimg, nvdicalc, resizeimg, testfunction
+from cf_scripts import retrieveimg, ndvicalc, resizeimg, testfunction
 import rasterio as rio
+import time
 
 ALLOWED_EXTENSIONS = set(['kml', 'shp'])
 
@@ -29,9 +30,11 @@ def upload_image():
 		file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 		shpfile = os.path.join("shape", filename)
 		retrieveimg(shpfile)
+		time.sleep(10)
 		b4 = rio.open('static/uploads/_B04.tif')
 		b8 = rio.open('static/uploads/_B08.tif')
-		nvdicalc(b4, b8)
+		ndvicalc(b4, b8)
+		time.sleep(10)
 		ndvi = rio.open('static/uploads/NDVI.tif')
 		resizeimg(ndvi)
 		filename2 = 'static/uploads/resample.jpg'
