@@ -14,7 +14,7 @@
 </p>
 {% if filename %}
 	<div>
-		<img src="{{ url_for('display_image', filename=filename) }}">
+		<img src="{{ url_for('display_image', filename=filename) }}" width="400" height="400">
 	</div>
 {% endif %}
 <form method="post" action="/" enctype="multipart/form-data">

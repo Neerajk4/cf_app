@@ -82,7 +82,7 @@ def ndvicalc(b4, b8):
 #%%
 def resizeimg(dataset):
     from rasterio.enums import Resampling
-    upscale_factor = .25
+    upscale_factor = .10
 
     ##with rio.open("static/uploads/NDVI.tif") as dataset:
         # resample data to target shape
@@ -98,7 +98,8 @@ def testfunction():
 
 def upload_to_bucket(blob_name, file_path, bucket_name):
     try:
-        storage_client = storage.Client.from_service_account_json('shape/project2-297804-93907eda4ec1.json')
+        fp = os.path.abspath("C:/Users/Neerajk4/Documents/projects/project2-297804-93907eda4ec1.json")
+        storage_client = storage.Client.from_service_account_json(fp)
         bucket = storage_client.get_bucket(bucket_name)
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(file_path)
