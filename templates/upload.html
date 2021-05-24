@@ -1,6 +1,8 @@
-<!doctype html>
-<title>Python Flask Display Example CF</title>
-<h2>Select an shape file(kml) to upload and display</h2>
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>{% block title %}Select an shape file(kml) to upload and display {% endblock %}</h2>
+
 <p>
 	{% with messages = get_flashed_messages() %}
 	  {% if messages %}
@@ -17,7 +19,9 @@
 		<img src="{{ url_for('display_image', filename=filename) }}" width="400" height="400">
 	</div>
 {% endif %}
-<form method="post" action="/" enctype="multipart/form-data">
+
+
+<form method="post" action="/uploader" enctype="multipart/form-data">
     <dl>
 		<p>
 			<input type="file" name="file" autocomplete="off" required>
@@ -27,3 +31,5 @@
 		<input type="submit" value="Submit">
 	</p>
 </form>
+
+{% endblock content %}
