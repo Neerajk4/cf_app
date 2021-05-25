@@ -18,6 +18,9 @@ import pandas as pd
 import numpy as np
 import os
 import zipfile
+import glob
+import warnings
+import ee
 #%%
 
 
@@ -97,11 +100,73 @@ def resizeimg(dataset):
 def testfunction():
     return "Hello"
 #%%
+filepath = "shape/shape_file.zip"
+file = zipfile.ZipFile(filepath, 'r')
+#%%
+ee.Authenticate()
+ee.Initialize()
+#%%
 
-with zipfile.ZipFile(filepath, 'r') as zip_ref:
-    zip_ref.extractall("test")
+
+def readShapeFile(file):
+    file.extractall("shape/extracted_files")
+    
+    ## gets new filepath
+    for name in glob.glob('shape/extracted_files/*.shp'):
+        filepath_new = name
+        
+    gdf = gp.read_file(filepath_new)
+    gdf = gdf.iloc[[4]]
+
+    farmBoundaries = gdf['geometry']
+    warnMessage = "warning message for points"
+    allCoordinates = []
+    for b in farmBoundaries.boundary:
+
+        if b.geom_type == 'Point' or b.geom_type == 'MultiPoint':
+            warnings.warn(warnMessage)
+      
+        elif b.geom_type == 'MultiLineString':
+            for geom in range(len(b.geoms)):
+        # extract the x and y coordinates and form a list of tuples [(x-coord, y-coord)]
+                x,y = b[geom].coords.xy
+                xy = list(zip(x,y))
+                allCoordinates.append(xy)
+        else:
+            x,y = b.coords.xy
+            xy = list(zip(x,y))
+            allCoordinates.append(xy) 
+
+    return ee.Geometry.Polygon(allCoordinates)
 
 
+
+#%%
+bbb = readShapeFile(file)
+
+#%%
+
+def g_authenticate():
+    service_account = " cf-cloud@project2-297804.iam.gserviceaccount.com"
+##service_account = 'my-service-account@...gserviceaccount.com'
+    json_file = "../project2-297804-93907eda4ec1.json"
+    credentials = ee.ServiceAccountCredentials(service_account, json_file)
+    ee.Initialize(credentials)
+
+
+#%%
+
+def getSentinelImages(roi: ee.geometry.Geometry, startDate: str, endDate: str, **kwargs) -> ee.ImageCollection:
+  
+  '''
+  startDate and endDate must be in the form "YYYY-MM-DD"
+
+  The current state of the function will only return images in which less than 20% of pixels
+  are labeled as cloudy pixels.
+  '''
+
+  return ee.ImageCollection('COPERNICUS/S2_SR').filterBounds(roi).filterDate(startDate, endDate)\
+.filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', 20))
 
 
 

@@ -7,7 +7,7 @@ from cf_scripts import retrieveimg, ndvicalc, resizeimg, testfunction
 import rasterio as rio
 import time
 
-ALLOWED_EXTENSIONS = set(['kml', 'shp'])
+ALLOWED_EXTENSIONS = set(['kml', 'shp', '.zip'])
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
