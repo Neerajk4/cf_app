@@ -17,12 +17,13 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import os
+import zipfile
 #%%
 
 
-##os.chdir(".spyder-py3/flask/cf")
+os.chdir(".spyder-py3/flask/cf/shape/other")
 ##shpfile = "shape\KMLtoShape.shp"
-shpfile = "shape\Ackerpulco.kml"
+filepath = "KMLtoShape.zip"
 #%%
 
 ##b4 = rio.open('static/uploads/_B04.tif')
@@ -96,51 +97,10 @@ def resizeimg(dataset):
 def testfunction():
     return "Hello"
 #%%
-##from PIL import Image
-##import PIL
 
+with zipfile.ZipFile(filepath, 'r') as zip_ref:
+    zip_ref.extractall("test")
 
-##image = Image.open('static/uploads/sample.jpg')
-##base_width = 360
-##width_percent = (base_width / float(image.size[0]))
-##hsize = int((float(image.size[1]) * float(width_percent)))
-##image2 = image.resize((base_width, hsize), PIL.Image.ANTIALIAS)
-##image2 = image2.convert('RGB')
-##image2.save('resized_compressed_image.jpg')
-
-#%%
-
-##import matplotlib.pyplot as plt
-##fig = plt.figure()
-##grid = axes_grid1.AxesGrid(
-##fig, 111, nrows_ncols=(1, 2), axes_pad = 0.5, cbar_location = "right",
-##cbar_mode="each", cbar_size="15%", cbar_pad="5%",)
-##ndvi=ndvi.squeeze()
-##im0 = grid[0].imshow(ndvi, cmap='pink', interpolation='nearest')
-##grid.cbar_axes[0].colorbar(im0)
-
-
-#%%
-
-##retrieveimg(shpfile)
-#%%
-##nvdicalc(b4, b8)
-##resizeimg(ndvi)
-#%%
-##from rasterio.enums import Resampling
-##upscale_factor = .25
-
-##with rio.open("static/uploads/ndvi.tif") as dataset:
-
-    # resample data to target shape
-    ##data = dataset.read(out_shape=(dataset.count,int(dataset.height * upscale_factor),
-    ##int(dataset.width * upscale_factor)), resampling=Resampling.bilinear)
-    
-    
-#%%
-    # scale image transform
-##transform = dataset.transform * dataset.transform.scale((dataset.width / data.shape[-1]),
-##(dataset.height / data.shape[-2]))
 
 
 

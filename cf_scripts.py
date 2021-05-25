@@ -82,7 +82,7 @@ def ndvicalc(b4, b8):
 #%%
 def resizeimg(dataset):
     from rasterio.enums import Resampling
-    upscale_factor = .10
+    upscale_factor = .01
 
     ##with rio.open("static/uploads/NDVI.tif") as dataset:
         # resample data to target shape
