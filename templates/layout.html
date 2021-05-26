@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
     <title>{% block title %} {% endblock %}</title>
+
   </head>
   <body>
     <nav class="navbar navbar-expand-md navbar-light bg-primary">
@@ -31,8 +32,17 @@
         {% for message in get_flashed_messages() %}
         <div class="alert alert-danger">{{ message }}</div>
         {% endfor %}
-        {% block content %} {% endblock %}
+	<header>{% block head %}{% endblock %}</header>
     </div>
+
+	<h2>Climate Farmers Stats page </h2>
+
+	<p>
+	Below is a map for the following shape file.
+	</p>
+
+	{% block body %}{% endblock %}
+	
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

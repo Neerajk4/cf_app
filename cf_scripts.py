@@ -4,16 +4,21 @@ Created on Thu May 13 15:29:33 2021
 
 @author: Neerajk4
 """
-import requests
-import fiona
+## geo libraries
 import geopandas as gp
 from satsearch import Search
+import fiona
 import rasterio as rio
 from rasterio.plot import show
-
-#Used to generate zonal statistics from the union between polygons and raster data
 from rasterstats import zonal_stats
+import folium
+import ee
+
+##parsing and formatting packages
+import requests
 from datetime import datetime
+
+##other important libraries
 import pandas as pd
 import numpy as np
 import os
@@ -21,7 +26,7 @@ from google.cloud import storage
 import zipfile
 import glob
 import warnings
-import ee
+
 #%%
 
 
@@ -120,7 +125,7 @@ def readShapeFile(file):
         filepath_new = name
         
     gdf = gp.read_file(filepath_new)
-    gdf = gdf.iloc[[4]]
+    gdf = gdf.iloc[[0]]
 
     farmBoundaries = gdf['geometry']
     warnMessage = "warning message for points"
@@ -161,4 +166,74 @@ def getSentinelImages(roi: ee.geometry.Geometry, startDate: str, endDate: str, *
   return ee.ImageCollection('COPERNICUS/S2_SR').filterBounds(roi).filterDate(startDate, endDate)\
 .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', 20))
 
+def addNDVI(image: ee.image.Image) -> ee.image.Image:
+  ndvi = image.normalizedDifference(['B5', 'B4']).rename('NDVI');
+  return image.addBands(ndvi)
 
+def addNDTI(image: ee.image.Image) -> ee.image.Image:
+  ndti = image.normalizedDifference(['B11', 'B12']).rename('NDTI')
+  return image.addBands(ndti)
+
+def addVRESTI(image: ee.image.Image) -> ee.image.Image:
+  vresti = image.normalizedDifference(['B7', 'B12']).rename('VRESTI')
+  return image.addBands(vresti)
+
+def addNITI(image: ee.image.Image) -> ee.image.Image:
+  niti = image.normalizedDifference(['B8A', 'B12']).rename('NITI')
+  return image.addBands(niti)
+
+def addVRETI(image: ee.image.Image) -> ee.image.Image:
+  vreti = image.normalizedDifference(['B6', 'B12']).rename('VRETI')
+  return image.addBands(vreti)
+
+def addRSDI(image: ee.image.Image) -> ee.image.Image:
+  rsdi = image.normalizedDifference(['B5', 'B12']).rename('RSDI')
+  return image.addBands(rsdi)
+
+# Define a method for displaying Earth Engine image tiles to folium map.
+def add_ee_layer(self, ee_image_object, vis_params, name):
+  map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
+  folium.raster_layers.TileLayer(
+    tiles = map_id_dict['tile_fetcher'].url_format,
+    attr = "Map Data © Google Earth Engine",
+    name = name,
+    overlay = True,
+    control = True
+  ).add_to(self)
+
+def gen_folium(shape):
+    lat_dobimar = 53.701366188784476
+    lon_dobimar = 11.539508101477306
+    startDate = '2020-05-01'
+    endDate = '2021-05-01'
+    sentinelCollection = getSentinelImages(shape, startDate, endDate)
+    clippedCollection = sentinelCollection.map(lambda image: image.clip(shape))
+    clippedImage = clippedCollection.limit(1, 'system:time_start', False).first()
+
+    ndviBand = addNDVI(clippedImage).select("NDVI")
+    ndtiBand = addNDTI(clippedImage).select('NDTI')
+    vrestiBand = addVRESTI(clippedImage).select("VRESTI")
+    nitiBand = addNITI(clippedImage).select('NITI')
+
+    visParams = {'min': 0, 'max': 1000, 'bands': ['B4', 'B3', 'B2']}
+    ndviParams = {min: -1, max: 1, 'palette': ['blue', 'white', 'green']}
+    ndtiParams = {min: 0, max: 1, 'palette': ['blue', 'white', 'yellow', 'brown', 'red']}
+    vrestiParams = {min: -1, max: 1, 'palette': ['white', 'blue', 'purple', 'white', 'red']}
+    nitiParams = {min: 0, max: 1, 'palette': ['yellow', 'white', 'brown']}
+    vretiParams = {min: -1, max: 1, 'palette': ['blue', 'white', 'green']}
+    rsdiParams = {min: 0, max: 1, 'palette': ['yellow', 'white', 'brown']}
+    map = folium.Map(location=[lat_dobimar,lon_dobimar], zoom_start=14)
+
+    folium.Map.add_ee_layer = add_ee_layer
+
+    # Add the image layer to the map and display it.
+    map.add_ee_layer(ndviBand, ndviParams, 'NDVI')
+    map.add_ee_layer(vrestiBand, vrestiParams, 'VRESTI')
+    map.add_ee_layer(ndtiBand, ndtiParams, 'NDTI')
+    map.add_ee_layer(nitiBand, nitiParams, 'NITI')
+
+    map.add_ee_layer(clippedImage, visParams, 'VIS')
+    map.add_child(folium.LayerControl())
+
+    # %%
+    map.save("templates/map.html")
