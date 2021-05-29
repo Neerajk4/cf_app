@@ -21,6 +21,7 @@ from datetime import datetime
 ##other important libraries
 import pandas as pd
 import numpy as np
+import altair as alt
 import os
 from google.cloud import storage
 import zipfile
@@ -28,82 +29,10 @@ import glob
 import warnings
 
 #%%
-
-
 ##os.chdir(".spyder-py3/flask/cf")
 ##shpfile = "shape\KMLtoShape.shp"
 shpfile = "shape\Ackerpulco.kml"
 #%%
-
-##b4 = rio.open('static/uploads/_B04.tif')
-##b8 = rio.open('static/uploads/_B08.tif')
-##ndvi = rio.open('static/uploads/NDVI.tif')
-#%%
-
-def retrieveimg(shpfile):
-    gp.io.file.fiona.drvsupport.supported_drivers['KML'] = 'rw'
-    data = gp.read_file(shpfile, driver='KML')
-    boundary = data.bounds.values.tolist()
-
-
-    search = Search(bbox=boundary[0], datetime='2020-05-01/2020-12-30', url='https://earth-search.aws.element84.com/v0',
-               collections=['sentinel-s2-l2a-cogs'],query={'eo:cloud_cover': {'lt': 1}})
-
-    items = search.items() 
-
-    data = list()
-    chunks = items.summary().split('\n')
-    chunks = chunks[2:]
-    for chunk in chunks:
-        data.append(chunk.split())
-
-    df = pd.DataFrame(data, columns = ['date', 'id'])
-    df.reset_index(inplace=True)
-    df = df.sort_values(by='date', ascending=False)
-    id1 = df.index[0]
-    item = items[id1]
-
-    item.download('B04', filename_template='static/uploads/')
-    item.download('B08', filename_template='static/uploads/')
-
-
-#%%
-def ndvicalc(b4, b8):
-# read Red(b4) and NIR(b8) as arrays
-    red = b4.read()
-    nir = b8.read()
-
-
-# Calculate ndvi
-    ndvi = (nir.astype(float)-red.astype(float))/(nir+red)
-
-# Write the NDVI image
-    meta = b4.meta
-    meta.update(driver='GTiff')
-    meta.update(dtype=rio.float32)
-
-    with rio.open('static/uploads/NDVI.tif', 'w', **meta) as dst:
-        dst.write(ndvi.astype(rio.float32))
-        
-    with rio.open('static/uploads/test.jpg', 'w', **meta) as dst:
-        dst.write(ndvi.astype(rio.float32))
-        
-#%%
-def resizeimg(dataset):
-    from rasterio.enums import Resampling
-    upscale_factor = .01
-
-    ##with rio.open("static/uploads/NDVI.tif") as dataset:
-        # resample data to target shape
-    data = dataset.read(out_shape=(dataset.count,int(dataset.height * upscale_factor),
-    int(dataset.width * upscale_factor)), resampling=Resampling.bilinear)
-        
-    with rio.open('static/uploads/resample.jpg', 'w', driver='GTiff', height=data.shape[1], width = data.shape[2], count = 1, dtype=rio.float32) as dst:
-        dst.write(data.astype(rio.float32))
-
-
-def testfunction():
-    return "Hello"
 
 def upload_to_bucket(blob_name, file_path, bucket_name):
     try:
@@ -142,6 +71,9 @@ def readShapeFile(file):
                 xy = list(zip(x,y))
                 allCoordinates.append(xy)
         else:
+            middle = b.centroid.coords
+            latitude = middle[0][1]
+            longitude = middle[0][0]
             x,y = b.coords.xy
             xy = list(zip(x,y))
             allCoordinates.append(xy) 
@@ -201,13 +133,18 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
     control = True
   ).add_to(self)
 
-def gen_folium(shape):
-    lat_dobimar = 53.701366188784476
-    lon_dobimar = 11.539508101477306
+def getCollection(shape):
     startDate = '2020-05-01'
     endDate = '2021-05-01'
     sentinelCollection = getSentinelImages(shape, startDate, endDate)
     clippedCollection = sentinelCollection.map(lambda image: image.clip(shape))
+    return clippedCollection
+
+
+def gen_folium(clippedCollection):
+    lat_dobimar = 53.701366188784476
+    lon_dobimar = 11.539508101477306
+
     clippedImage = clippedCollection.limit(1, 'system:time_start', False).first()
 
     ndviBand = addNDVI(clippedImage).select("NDVI")
@@ -237,3 +174,55 @@ def gen_folium(shape):
 
     # %%
     map.save("templates/map.html")
+
+def collectionMeans(image: ee.image.Image, index: str, geometry: ee.geometry.Geometry) -> ee.ImageCollection:
+  # Compute the mean of the passed index over the passed image
+  # the value is a dictionary, so get the index value from the dictionary
+  value = image.reduceRegion(**{'geometry': geometry,'reducer': ee.Reducer.mean(),
+  }).get(index)
+
+  # Adding computed index value
+  newFeature = ee.Feature(None, {index : value
+  }).copyProperties(image, ['system:time_start','SUN_ELEVATION'])
+  return newFeature
+
+
+def getDataframe(shape, clippedCollection):
+    it_dict = {"NDVI": addNDVI, "NDTI": addNDTI, "VRESTI": addVRESTI, "NITI": addNITI}
+    dict_values = {"date": [], "NDVI": [], "NDTI": [], "VRESTI": [], "NITI": []}
+
+    for key, value_func in it_dict.items():
+        print(key, value_func)
+        collection2 = clippedCollection.map(lambda clippedImage: value_func(clippedImage)).select(key)
+        meanscollection2 = collection2.map(lambda clippedImage: collectionMeans(clippedImage, key, shape))
+
+        for i in range(len(meanscollection2.getInfo()['features'])):
+            dict_values[key].append(meanscollection2.getInfo()['features'][i]['properties'][key])
+            if key == "NDVI":
+                dict_values["date"].append(meanscollection2.getInfo()['features'][i]['properties']['system:time_start'])
+
+    df3 = pd.DataFrame(dict_values)
+    df3['date'] = pd.to_datetime(df3['date'], unit='ms')
+    df3['date'] = df3['date'].dt.strftime('%Y-%m-%d')
+    df3.to_csv("static/uploads/data.csv", index=False)
+    return df3
+
+
+def gen_Charts(df3):
+    baseNDVI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDVI:Q',
+                color=alt.Color('NDVI:Q',scale=alt.Scale(scheme='pinkyellowgreen',domain=(-1, 1))),
+                tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDVI:Q', title='NDVI')]).properties(width=600, height=300)
+
+    baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDTI:Q',
+                color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue',domain=(-1, 1))),
+                tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')]).properties(width=600, height=300)
+
+    ndti_comparison = alt.layer(baseNDTI, baseNDVI).resolve_scale(color='independent')
+
+    NDVIvsNDTI_histogram = alt.Chart(df3).transform_fold(['NDVI', 'NDTI'],as_=['Index', 'Index score']).mark_area(opacity=0.3,
+                            interpolate='step').encode(alt.X('Index score:Q', bin=alt.Bin(maxbins=40)),alt.Y('count()', stack=None),
+                            alt.Color('Index:N'))
+
+    display1 = alt.hconcat(ndti_comparison, NDVIvsNDTI_histogram)
+
+    display1.save('templates/altair.html')

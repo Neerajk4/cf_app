@@ -3,8 +3,12 @@
 {% block head %} {{ super() }} {% endblock %}
 
 {% block body %}
+<h2>Climate Farmers Stats page </h2>
+<p>Below is the statistics/charts for the following shape file.</p>
+
+
     {% if file_exist == True %}
-    {% include "map.html" %}
+    {% include "altair.html" %}
     {% else %} 
     <p> Shape file not uploaded.  Click on upload tab and upload shape file.  </p>
     {% endif %}

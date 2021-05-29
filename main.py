@@ -4,13 +4,14 @@ from app import app
 import urllib.request
 from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
-from cf_scripts import readShapeFile, g_authenticate,getSentinelImages, gen_folium
+from cf_scripts import readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts
 import zipfile
 import folium
 import rasterio as rio
+import pandas as pd
 import time
 
-ALLOWED_EXTENSIONS = set(['kml', 'shp', '.zip'])
+ALLOWED_EXTENSIONS = set(['kml', 'shp', 'zip'])
 
 def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -44,7 +45,11 @@ def upload_image():
             if file_extension == ".zip":
                 file = zipfile.ZipFile(filepath, 'r')
                 shape = readShapeFile(file)
-                gen_folium(shape)
+                clippedCollection = getCollection(shape)
+                gen_folium(clippedCollection)
+                df3 = getDataframe(shape, clippedCollection)
+                gen_Charts(df3)
+
             else:
                 pass
 
@@ -63,13 +68,13 @@ def display_image(filename):
 	#print('display_image filename: ' + filename)
 	return redirect(url_for('static', filename='uploads/' + filename), code=301)
 
-@app.route('/stats')
-def stats_render():
-    file_exist = path.exists("shape/extracted_files")
-    return render_template('stats.html', file_exist = file_exist)
-
 @app.route('/mappage')
 def get_map():
+    file_exist = path.exists("shape/extracted_files")
+    return render_template('mappage.html', file_exist = file_exist)
+
+@app.route('/stats')
+def stats_render():
     file_exist = path.exists("shape/extracted_files")
     return render_template('stats.html', file_exist = file_exist)
 

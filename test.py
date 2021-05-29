@@ -5,83 +5,124 @@ os.chdir("Documents/projects/cf_app")
 #%%
 import rasterio as rio
 from rasterio.plot import show
-from cf_scripts import readShapeFile, g_authenticate,getSentinelImages
+from cf_scripts import readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium
 from cf_scripts import addNDVI, addNDTI, addVRESTI, addNITI, add_ee_layer
+from cf_scripts import collectionMeans, getDataframe
 import ee
 import zipfile
 import folium
+import pandas as pd
+import geopandas as gp
+import altair as alt
 
 #%%#%%
-filepath = "shape\shape_file.zip"
-test = open(filepath, "r")
+filepath = "shape\KMLtoShape.zip"
+file = zipfile.ZipFile(filepath, 'r')
 
 #%%
 g_authenticate()
+shape = readShapeFile(file)
+
+clippedCollection = getCollection(shape)
+gen_folium(clippedCollection)
+df3 = getDataframe(shape, clippedCollection)
+#%%
+##df3 = pd.read_csv('static/uploads/data.csv')
 
 #%%
-file_extension = os.path.splitext(filepath)[1]
-if file_extension == ".zip":
-   file = zipfile.ZipFile(filepath, 'r') 
-   shape = readShapeFile(file)
-else:
-    pass
+baseNDVI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T',y='NDVI:Q',
+    color=alt.Color('NDVI:Q', scale=alt.Scale(scheme='pinkyellowgreen', domain=(-1, 1))),
+    tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDVI:Q', title='NDVI')
+    ]).properties(width=600, height=300)
+
+baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T',y='NDTI:Q',
+    color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue', domain=(-1, 1))),
+    tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')
+    ]).properties(width=600, height=300)
+
+ndti_comparison = alt.layer(baseNDTI, baseNDVI).resolve_scale(color='independent')
+
+NDVIvsNDTI_histogram = alt.Chart(df3).transform_fold(['NDVI', 'NDTI'],
+    as_=['Index', 'Index score']).mark_area(opacity=0.3,interpolate='step').encode(
+    alt.X('Index score:Q', bin=alt.Bin(maxbins=40)),
+    alt.Y('count()', stack=None),
+    alt.Color('Index:N'))
+
+display1 = alt.hconcat(ndti_comparison, NDVIvsNDTI_histogram)
+
+
+display1.save('templates/altair.html')
 
 #%%
-lat_dobimar = 53.701366188784476
-lon_dobimar = 11.539508101477306
+def gen_Charts(df3):
+    
+    baseNDVI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T',y='NDVI:Q',
+    color=alt.Color('NDVI:Q', scale=alt.Scale(scheme='pinkyellowgreen', domain=(-1, 1))),
+    tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDVI:Q', title='NDVI')
+    ]).properties(width=600, height=300)
 
-lat_martin = 47.88735304545457
-lon_martin = 13.755339409090896
-#%%
-startDate = '2020-05-01'
-endDate = '2021-05-01'
-sentinelCollection = getSentinelImages(shape, startDate, endDate)
-clippedCollection = sentinelCollection.map(lambda image: image.clip(shape))
-image = sentinelCollection.limit(1, 'system:time_start', False).first()
-clippedImage = clippedCollection.limit(1, 'system:time_start', False).first()
-#%%
+    baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T',y='NDTI:Q',
+    color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue', domain=(-1, 1))),
+    tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')
+    ]).properties(width=600, height=300)
 
-# defining and adding the various index bands to the passed image
+    ndti_comparison = alt.layer(baseNDTI, baseNDVI).resolve_scale(color='independent')
 
-ndviBand = addNDVI(clippedImage).select("NDVI")
-ndtiBand = addNDTI(clippedImage).select('NDTI')
-vrestiBand = addVRESTI(clippedImage).select("VRESTI")
-nitiBand = addNITI(clippedImage).select('NITI')
+    NDVIvsNDTI_histogram = alt.Chart(df3).transform_fold(['NDVI', 'NDTI'],
+    as_=['Index', 'Index score']).mark_area(opacity=0.3,interpolate='step').encode(
+    alt.X('Index score:Q', bin=alt.Bin(maxbins=40)),
+    alt.Y('count()', stack=None),
+    alt.Color('Index:N'))
 
-#%%
-visParams = {'min': 0, 'max': 1000, 'bands': ['B4', 'B3', 'B2']}
-ndviParams = {min: -1, max: 1, 'palette': ['blue', 'white', 'green']}
-ndtiParams = {min: 0, max: 1, 'palette': ['blue','white','yellow','brown','red']}
-vrestiParams = {min: -1, max: 1, 'palette': ['white', 'blue', 'purple','white', 'red']}
-nitiParams = {min: 0, max: 1, 'palette': ['yellow','white','brown']}
-vretiParams = {min: -1, max: 1, 'palette': ['blue', 'white', 'green']}
-rsdiParams = {min: 0, max: 1, 'palette': ['yellow','white','brown']}
+    display1 = alt.hconcat(ndti_comparison, NDVIvsNDTI_histogram)
+
+
+    display1.save('templates/altair.html')
 
 #%%
 
-# use the control button in the top right corner to visualize the different indices against the map
+def getDataframe(shape, clippedCollection):
+    it_dict = {"NDVI": addNDVI, "NDTI": addNDTI, "VRESTI": addVRESTI, "NITI": addNITI}
+    dict_values = {"date": [], "NDVI": [], "NDTI": [], "VRESTI": [], "NITI": []}
 
-# adjust the location parameter according to the desired farm
-map = folium.Map(location=[lat_dobimar,lon_dobimar], zoom_start=14)
+    for key, value_func in it_dict.items():
+        print(key, value_func)
+        collection2 = clippedCollection.map(lambda clippedImage: value_func(clippedImage)).select(key)
+        meanscollection2 = collection2.map(lambda clippedImage: collectionMeans(clippedImage, key, shape))
 
-folium.Map.add_ee_layer = add_ee_layer
+        for i in range(len(meanscollection2.getInfo()['features'])):
+            dict_values[key].append(meanscollection2.getInfo()['features'][i]['properties'][key])
+            if key == "NDVI":
+                dict_values["date"].append(meanscollection2.getInfo()['features'][i]['properties']['system:time_start'])
 
+    df3 = pd.DataFrame(dict_values)
+    df3['date'] = pd.to_datetime(df3['date'], unit='ms')
+    df3['date'] = df3['date'].dt.strftime('%Y-%m-%d')
+    df3.to_csv("static/uploads/data.csv", index=False)
+    return df3
 
-# Add the image layer to the map and display it.
-map.add_ee_layer(ndviBand, ndviParams, 'NDVI')
-map.add_ee_layer(vrestiBand, vrestiParams, 'VRESTI')
-map.add_ee_layer(ndtiBand, ndtiParams, 'NDTI')
-map.add_ee_layer(nitiBand, nitiParams, 'NITI')
-
-map.add_ee_layer(image, visParams, 'VIS')
-map.add_child(folium.LayerControl())
 
 #%%
-map.save("templates/map2.html")
 
+filepath = 'test/result.shp'
 
+gdf = gp.read_file(filepath)
+gdf = gdf.iloc[[0]]
+allCoordinates = []
 
+farmBoundaries = gdf['geometry']
 
-
-
-
+#%%
+for b in farmBoundaries.boundary:
+    middle = b.centroid.coords
+    latitude = middle[0][1]
+    longitude = middle[0][0]
+    
+    ##x,y = b.coords.xy
+    ##xy = list(zip(x,y))
+    ##allCoordinates.append(xy)
+    
+    
+    
+    
+    
