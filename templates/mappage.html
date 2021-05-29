@@ -3,6 +3,9 @@
 {% block head %} {{ super() }} {% endblock %}
 
 {% block body %}
+<h2>Climate Farmers Map page </h2>
+<p>Below is a map for the following shape file.</p>
+
     {% if file_exist == True %}
     {% include "map.html" %}
     {% else %} 
