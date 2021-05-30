@@ -1,10 +1,31 @@
 {% extends "layout.html" %}
-{% block title %} Test {% endblock %}
+{% block title %} Stats Page {% endblock %}
 {% block head %} {{ super() }} {% endblock %}
 
 {% block body %}
 <h2>Climate Farmers Stats page </h2>
 <p>Below is the statistics/charts for the following shape file.</p>
+
+<div id ="content">
+<form name="log" action="/stats" method="post" enctype="multipart/form-data">
+  <label for="index_type">Choose Index Type:</label>
+  <select id="index_type" name="index_type">
+    <option value="NDVI">NDVI</option>
+    <option value="NDTI">NDTI</option>
+    <option value="VRESTI">VRESTI</option>
+    <option value="NITI">NITI</option>
+  </select>
+
+ <label for="start_date">Enter a start date:</label>
+ <input type="date" id="start_date" name="start_date">
+
+ <label for="end_date">Enter a end date:</label>
+ <input type="date" id="end_date" name="end_date">
+
+  <input type="submit">
+</form>
+</div>
+
 
 
     {% if file_exist == True %}

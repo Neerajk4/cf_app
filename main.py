@@ -31,8 +31,10 @@ def upload_image():
             flash('No file part')
             return redirect(request.url)
         file = request.files['file']
+        latitude = request.form['latitude']
+        longitude = request.form['longitude']
         if file.filename == '':
-            flash('No image selected for uploading')
+            flash('No file selected for uploading')
             return redirect(request.url)
 
         ##if file and allowed_file(file.filename):
@@ -46,9 +48,9 @@ def upload_image():
                 file = zipfile.ZipFile(filepath, 'r')
                 shape = readShapeFile(file)
                 clippedCollection = getCollection(shape)
-                gen_folium(clippedCollection)
+                gen_folium(clippedCollection, latitude, longitude)
                 df3 = getDataframe(shape, clippedCollection)
-                gen_Charts(df3)
+                gen_Charts(df3, 'NDVI', '2020-05-01', '2021-05-01')
 
             else:
                 pass
@@ -73,11 +75,21 @@ def get_map():
     file_exist = path.exists("shape/extracted_files")
     return render_template('mappage.html', file_exist = file_exist)
 
-@app.route('/stats')
+@app.route('/stats', methods = ['GET', 'POST'])
 def stats_render():
-    file_exist = path.exists("shape/extracted_files")
-    return render_template('stats.html', file_exist = file_exist)
-
+    file_exist = path.exists("static/uploads/data.csv")
+    if request.method == 'POST':
+        if file_exist:
+            index_type = request.form['index_type']
+            start_date = request.form['start_date']
+            end_date = request.form['end_date']
+            df3 = pd.read_csv('static/uploads/data.csv')
+            gen_Charts(df3, index_type, start_date, end_date)
+            return render_template('stats.html', file_exist = file_exist)
+        else:
+            return render_template('stats.html', file_exist=file_exist)
+    else:
+        return render_template('stats.html', file_exist=file_exist)
 
 if __name__ == "__main__":
     app.run()

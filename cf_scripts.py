@@ -141,9 +141,9 @@ def getCollection(shape):
     return clippedCollection
 
 
-def gen_folium(clippedCollection):
-    lat_dobimar = 53.701366188784476
-    lon_dobimar = 11.539508101477306
+def gen_folium(clippedCollection, latitude, longitude):
+    latitude = int(latitude)
+    longitude = int(longitude)
 
     clippedImage = clippedCollection.limit(1, 'system:time_start', False).first()
 
@@ -159,7 +159,7 @@ def gen_folium(clippedCollection):
     nitiParams = {min: 0, max: 1, 'palette': ['yellow', 'white', 'brown']}
     vretiParams = {min: -1, max: 1, 'palette': ['blue', 'white', 'green']}
     rsdiParams = {min: 0, max: 1, 'palette': ['yellow', 'white', 'brown']}
-    map = folium.Map(location=[lat_dobimar,lon_dobimar], zoom_start=14)
+    map = folium.Map(location=[latitude,longitude], zoom_start=14)
 
     folium.Map.add_ee_layer = add_ee_layer
 
@@ -208,21 +208,25 @@ def getDataframe(shape, clippedCollection):
     return df3
 
 
-def gen_Charts(df3):
-    baseNDVI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDVI:Q',
-                color=alt.Color('NDVI:Q',scale=alt.Scale(scheme='pinkyellowgreen',domain=(-1, 1))),
-                tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDVI:Q', title='NDVI')]).properties(width=600, height=300)
+def gen_Charts(df3, index_type, start_date, end_date):
+    df4 = df3[df3['date'].between(start_date, end_date)]
+    chart_val = index_type + ':Q'
 
-    baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDTI:Q',
-                color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue',domain=(-1, 1))),
-                tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')]).properties(width=600, height=300)
+    basechart = alt.Chart(df4).mark_circle(size=100).encode(x='date:T', y=chart_val,color=alt.Color(chart_val,
+                    scale=alt.Scale(scheme='pinkyellowgreen',domain=(-1, 1))),tooltip=[alt.Tooltip('Datetime:T', title='Date'),
+                    alt.Tooltip(chart_val,title=index_type)]).properties(width=600, height=300)
 
-    ndti_comparison = alt.layer(baseNDTI, baseNDVI).resolve_scale(color='independent')
+    basechart.save('templates/altair.html')
+    ##baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDTI:Q',
+                ##color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue',domain=(-1, 1))),
+                ##tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')]).properties(width=600, height=300)
 
-    NDVIvsNDTI_histogram = alt.Chart(df3).transform_fold(['NDVI', 'NDTI'],as_=['Index', 'Index score']).mark_area(opacity=0.3,
-                            interpolate='step').encode(alt.X('Index score:Q', bin=alt.Bin(maxbins=40)),alt.Y('count()', stack=None),
-                            alt.Color('Index:N'))
+    ##ndti_comparison = alt.layer(baseNDTI, baseNDVI).resolve_scale(color='independent')
 
-    display1 = alt.hconcat(ndti_comparison, NDVIvsNDTI_histogram)
+    ##NDVIvsNDTI_histogram = alt.Chart(df3).transform_fold(['NDVI', 'NDTI'],as_=['Index', 'Index score']).mark_area(opacity=0.3,
+                            ##interpolate='step').encode(alt.X('Index score:Q', bin=alt.Bin(maxbins=40)),alt.Y('count()', stack=None),
+                            ##alt.Color('Index:N'))
 
-    display1.save('templates/altair.html')
+    ##display1 = alt.hconcat(ndti_comparison, NDVIvsNDTI_histogram)
+
+    ##display1.save('templates/altair.html')
