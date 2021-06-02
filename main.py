@@ -4,7 +4,7 @@ from app import app
 import urllib.request
 from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
-from cf_scripts import readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts
+from cf_scripts import deleteFolder, readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts
 import zipfile
 import folium
 import rasterio as rio
@@ -42,6 +42,8 @@ def upload_image():
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             filepath = os.path.join("shape", filename)
+            if path.exists("static/uploads/extracted_files") == True:
+                deleteFolder()
             g_authenticate()
             file_extension = os.path.splitext(filepath)[1]
             if file_extension == ".zip":
@@ -68,7 +70,7 @@ def upload_image():
 @app.route('/display/<filename>')
 def display_image(filename):
 	#print('display_image filename: ' + filename)
-	return redirect(url_for('static', filename='uploads/' + filename), code=301)
+	return redirect(url_for('static', filename='static/uploads/' + filename), code=301)
 
 @app.route('/mappage')
 def get_map():

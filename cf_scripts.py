@@ -46,6 +46,13 @@ def upload_to_bucket(blob_name, file_path, bucket_name):
         print(e)
         return False
 
+def deleteFolder():
+    dir_path = 'shape/extracted_files'
+    files = glob.glob(os.path.join(dir_path, "*"))
+    for f in files:
+        os.remove(f)
+    os.rmdir(dir_path)
+
 def readShapeFile(file):
     file.extractall("shape/extracted_files")
     
@@ -84,7 +91,7 @@ def readShapeFile(file):
 def g_authenticate():
     service_account = " cf-cloud@project2-297804.iam.gserviceaccount.com"
 ##service_account = 'my-service-account@...gserviceaccount.com'
-    json_file = "../project2-297804-93907eda4ec1.json"
+    json_file = "project2-297804-93907eda4ec1.json"
     credentials = ee.ServiceAccountCredentials(service_account, json_file)
     ee.Initialize(credentials)
 
@@ -142,8 +149,8 @@ def getCollection(shape):
 
 
 def gen_folium(clippedCollection, latitude, longitude):
-    latitude = int(latitude)
-    longitude = int(longitude)
+    latitude = float(latitude)
+    longitude = float(longitude)
 
     clippedImage = clippedCollection.limit(1, 'system:time_start', False).first()
 
