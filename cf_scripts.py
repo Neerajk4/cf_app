@@ -28,11 +28,8 @@ import zipfile
 import glob
 import warnings
 
-#%%
-##os.chdir(".spyder-py3/flask/cf")
-##shpfile = "shape\KMLtoShape.shp"
-shpfile = "shape\Ackerpulco.kml"
-#%%
+##shpfile = "shape\Ackerpulco.kml"
+
 
 def upload_to_bucket(blob_name, file_path, bucket_name):
     try:
@@ -90,8 +87,9 @@ def readShapeFile(file):
 
 def g_authenticate():
     service_account = " cf-cloud@project2-297804.iam.gserviceaccount.com"
-##service_account = 'my-service-account@...gserviceaccount.com'
-    json_file = "project2-297804-93907eda4ec1.json"
+    ##json_file = "project2-297804-93907eda4ec1.json"
+    json_file = os.environ['gkey1']
+    ##json_file = os.environ['gkey2']
     credentials = ee.ServiceAccountCredentials(service_account, json_file)
     ee.Initialize(credentials)
 
