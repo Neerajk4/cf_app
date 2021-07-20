@@ -87,8 +87,8 @@ def readShapeFile(file):
 
 def g_authenticate():
     service_account = " cf-cloud@project2-297804.iam.gserviceaccount.com"
-    ##json_file = "project2-297804-93907eda4ec1.json"
-    json_file = os.environ['gkey1']
+    json_file = "google-credentials.json"
+    ##json_file = os.environ['gkey1']
     ##json_file = os.environ['gkey2']
     credentials = ee.ServiceAccountCredentials(service_account, json_file)
     ee.Initialize(credentials)
