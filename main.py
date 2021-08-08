@@ -1,15 +1,15 @@
 import os
 from os import path
 from app import app
-import urllib.request
+##import urllib.request
 from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
+import pandas as pd
 from cf_scripts import deleteFolder, readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts
 import zipfile
-import folium
-import rasterio as rio
-import pandas as pd
-import time
+##import folium
+##import rasterio as rio
+##import time
 
 ALLOWED_EXTENSIONS = set(['kml', 'shp', 'zip'])
 
@@ -20,9 +20,9 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
-@app.route('/upload', methods = ['GET', 'POST'])
-def upload_form():
-	return render_template('upload.html')
+##@app.route('/upload', methods = ['GET', 'POST'])
+##def upload_form():
+	##return render_template('upload.html')
 
 @app.route('/uploader',methods = ['GET', 'POST'])
 def upload_image():
