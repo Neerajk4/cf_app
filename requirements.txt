@@ -1,4 +1,5 @@
 altair==4.1.0
+celery==5.0.5
 fiona==1.8.19
 flask==1.1.2
 folium==0.12.0
@@ -12,6 +13,7 @@ numpy==1.19.5
 pandas==1.1.5
 rasterio==1.2.3
 rasterstats==0.14.0
+redis==3.5.3
 requests==2.25.1
 sat-search==0.3.0
 werkzeug==1.0.1

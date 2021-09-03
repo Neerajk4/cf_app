@@ -28,7 +28,6 @@ import zipfile
 import glob
 import warnings
 
-##shpfile = "shape\Ackerpulco.kml"
 
 def deleteFolder():
     dir_path = 'shape/extracted_files'
@@ -74,9 +73,9 @@ def readShapeFile(file: zipfile.ZipFile) -> ee.geometry.Geometry:
 
 def g_authenticate():
     service_account = " cf-cloud@project2-297804.iam.gserviceaccount.com"
-    ##json_file = "google-credentials.json"
+    json_file = "google-credentials.json"
     ##json_file = os.environ['gkey1']
-    json_file = os.environ['gkey2']
+    ##json_file = os.environ['gkey2']
     credentials = ee.ServiceAccountCredentials(service_account, json_file)
     ee.Initialize(credentials)
 
@@ -125,6 +124,7 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
     control = True
   ).add_to(self)
 
+@celery.task
 def getCollection(shape: ee.geometry.Geometry) -> ee.imagecollection.ImageCollection:
     startDate = '2020-05-01'
     endDate = '2021-05-01'
@@ -132,7 +132,7 @@ def getCollection(shape: ee.geometry.Geometry) -> ee.imagecollection.ImageCollec
     clippedCollection = sentinelCollection.map(lambda image: image.clip(shape))
     return clippedCollection
 
-
+@celery.task
 def gen_folium(clippedCollection: ee.imagecollection.ImageCollection, latitude: str, longitude: str):
     latitude = float(latitude)
     longitude = float(longitude)
@@ -177,7 +177,7 @@ def collectionMeans(image: ee.image.Image, index: str, geometry: ee.geometry.Geo
   }).copyProperties(image, ['system:time_start','SUN_ELEVATION'])
   return newFeature
 
-
+@celery.task
 def getDataframe(shape:ee.geometry.Geometry, clippedCollection: ee.imagecollection.ImageCollection) -> pd.core.frame.DataFrame:
     it_dict = {"NDVI": addNDVI, "NDTI": addNDTI, "VRESTI": addVRESTI, "NITI": addNITI}
     dict_values = {"date": [], "NDVI": [], "NDTI": [], "VRESTI": [], "NITI": []}
@@ -198,7 +198,7 @@ def getDataframe(shape:ee.geometry.Geometry, clippedCollection: ee.imagecollecti
     df3.to_csv("static/uploads/data.csv", index=False)
     return df3
 
-
+@celery.task
 def gen_Charts(df3: pd.core.frame.DataFrame, index_type: datetime, start_date: datetime, end_date: str):
     df4 = df3[df3['date'].between(start_date, end_date)]
     chart_val = index_type + ':Q'

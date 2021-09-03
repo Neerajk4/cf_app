@@ -10,6 +10,10 @@ import zipfile
 ##import folium
 ##import rasterio as rio
 ##import time
+##Celery packages
+from celery import Celery
+celery = celery.Celery('example')
+celery.conf.update(BROKER_URL=os.environ['REDIS_URL'],CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 ALLOWED_EXTENSIONS = set(['kml', 'shp', 'zip'])
 
@@ -49,10 +53,14 @@ def upload_image():
             if file_extension == ".zip":
                 file = zipfile.ZipFile(filepath, 'r')
                 shape = readShapeFile(file)
-                clippedCollection = getCollection(shape)
-                gen_folium(clippedCollection, latitude, longitude)
-                df3 = getDataframe(shape, clippedCollection)
-                gen_Charts(df3, 'NDVI', '2020-05-01', '2021-05-01')
+                ##clippedCollection = getCollection(shape)
+                ##gen_folium(clippedCollection, latitude, longitude)
+                ##df3 = getDataframe(shape, clippedCollection)
+                ##gen_Charts(df3, 'NDVI', '2020-05-01', '2021-05-01')
+                clippedCollection = getCollection.delay(shape)
+                gen_folium.delay(clippedCollection, latitude, longitude)
+                df3 = getDataframe.delay(shape, clippedCollection)
+                gen_Charts.delay(df3, 'NDVI', '2020-05-01', '2021-05-01')
 
             else:
                 pass
