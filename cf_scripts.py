@@ -27,7 +27,7 @@ from google.cloud import storage
 import zipfile
 import glob
 import warnings
-
+from celery import Celery
 
 def deleteFolder():
     dir_path = 'shape/extracted_files'

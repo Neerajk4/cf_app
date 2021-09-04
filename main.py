@@ -12,7 +12,7 @@ import zipfile
 ##import time
 ##Celery packages
 from celery import Celery
-celery = celery.Celery('example')
+celery = Celery('example')
 celery.conf.update(BROKER_URL=os.environ['REDIS_URL'],CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 ALLOWED_EXTENSIONS = set(['kml', 'shp', 'zip'])
