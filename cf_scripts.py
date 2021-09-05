@@ -28,6 +28,8 @@ import zipfile
 import glob
 import warnings
 from celery import Celery
+celery = Celery('example')
+celery.conf.update(BROKER_URL=os.environ['REDIS_URL'],CELERY_RESULT_BACKEND=os.environ['REDIS_URL'])
 
 def deleteFolder():
     dir_path = 'shape/extracted_files'
