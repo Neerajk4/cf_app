@@ -126,7 +126,6 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
     control = True
   ).add_to(self)
 
-@celery.task
 def getCollection(shape: ee.geometry.Geometry) -> ee.imagecollection.ImageCollection:
     startDate = '2020-05-01'
     endDate = '2021-05-01'
@@ -134,7 +133,6 @@ def getCollection(shape: ee.geometry.Geometry) -> ee.imagecollection.ImageCollec
     clippedCollection = sentinelCollection.map(lambda image: image.clip(shape))
     return clippedCollection
 
-@celery.task
 def gen_folium(clippedCollection: ee.imagecollection.ImageCollection, latitude: str, longitude: str):
     latitude = float(latitude)
     longitude = float(longitude)
@@ -179,7 +177,6 @@ def collectionMeans(image: ee.image.Image, index: str, geometry: ee.geometry.Geo
   }).copyProperties(image, ['system:time_start','SUN_ELEVATION'])
   return newFeature
 
-@celery.task
 def getDataframe(shape:ee.geometry.Geometry, clippedCollection: ee.imagecollection.ImageCollection) -> pd.core.frame.DataFrame:
     it_dict = {"NDVI": addNDVI, "NDTI": addNDTI, "VRESTI": addVRESTI, "NITI": addNITI}
     dict_values = {"date": [], "NDVI": [], "NDTI": [], "VRESTI": [], "NITI": []}
@@ -200,8 +197,7 @@ def getDataframe(shape:ee.geometry.Geometry, clippedCollection: ee.imagecollecti
     df3.to_csv("static/uploads/data.csv", index=False)
     return df3
 
-@celery.task
-def gen_Charts(df3: pd.core.frame.DataFrame, index_type: datetime, start_date: datetime, end_date: str):
+def gen_Charts(df3: pd.core.frame.DataFrame, index_type: str, start_date: datetime, end_date: datetime):
     df4 = df3[df3['date'].between(start_date, end_date)]
     chart_val = index_type + ':Q'
 
@@ -210,6 +206,16 @@ def gen_Charts(df3: pd.core.frame.DataFrame, index_type: datetime, start_date: d
                     alt.Tooltip(chart_val,title=index_type)]).properties(width=600, height=300)
 
     basechart.save('templates/altair.html')
+
+
+
+@celery.task
+def long_task(shape, latitude, longitude):
+    clippedCollection = getCollection(shape)
+    gen_folium(clippedCollection, latitude, longitude)
+    df3 = getDataframe(shape, clippedCollection)
+    gen_Charts(df3, 'NDVI', '2020-05-01', '2021-05-01')
+
     ##baseNDTI = alt.Chart(df3).mark_circle(size=100).encode(x='date:T', y='NDTI:Q',
                 ##color=alt.Color('NDTI:Q', scale=alt.Scale(scheme='redblue',domain=(-1, 1))),
                 ##tooltip=[alt.Tooltip('Datetime:T', title='Date'),alt.Tooltip('NDTI:Q', title='NDTI')]).properties(width=600, height=300)

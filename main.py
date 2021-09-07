@@ -5,7 +5,7 @@ from app import app
 from flask import Flask, flash, request, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
 import pandas as pd
-from cf_scripts import deleteFolder, readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts
+from cf_scripts import deleteFolder, readShapeFile, g_authenticate,getSentinelImages, getCollection, gen_folium, getDataframe, gen_Charts, long_task
 import zipfile
 ##import folium
 ##import rasterio as rio
@@ -53,14 +53,16 @@ def upload_image():
             if file_extension == ".zip":
                 file = zipfile.ZipFile(filepath, 'r')
                 shape = readShapeFile(file)
+                long_task.delay(shape, latitude, longitude)
                 ##clippedCollection = getCollection(shape)
                 ##gen_folium(clippedCollection, latitude, longitude)
                 ##df3 = getDataframe(shape, clippedCollection)
                 ##gen_Charts(df3, 'NDVI', '2020-05-01', '2021-05-01')
-                clippedCollection = getCollection.delay(shape)
-                gen_folium.delay(clippedCollection, latitude, longitude)
-                df3 = getDataframe.delay(shape, clippedCollection)
-                gen_Charts.delay(df3, 'NDVI', '2020-05-01', '2021-05-01')
+                ##clippedCollection = getCollection.delay(shape)
+                ##gen_folium.delay(clippedCollection, latitude, longitude)
+                ##df3 = getDataframe.delay(shape, clippedCollection)
+                ##gen_Charts.delay(df3, 'NDVI', '2020-05-01', '2021-05-01')
+
 
             else:
                 pass
