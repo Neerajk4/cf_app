@@ -210,7 +210,9 @@ def gen_Charts(df3: pd.core.frame.DataFrame, index_type: str, start_date: dateti
 
 
 @celery.task
-def long_task(shape, latitude, longitude):
+def long_task(filepath, latitude, longitude):
+    file = zipfile.ZipFile(filepath, 'r')
+    shape = readShapeFile(file)
     clippedCollection = getCollection(shape)
     gen_folium(clippedCollection, latitude, longitude)
     df3 = getDataframe(shape, clippedCollection)
